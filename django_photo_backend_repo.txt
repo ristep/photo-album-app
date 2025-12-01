@@ -1,0 +1,430 @@
+# Photo Album Backend - Full Repository
+
+This document contains a ready-to-copy repository layout for a Django + DRF backend using SQLite and filesystem media storage, packaged to run with Docker Compose locally.
+
+Copy each file into your project folder following the file path markers below.
+
+--- FILE: docker-compose.yml ---
+version: '3.9'
+
+services:
+  web:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: photo_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data/db:/app/db
+      - ./data/media:/app/media
+      - ./backend:/app
+    ports:
+      - '8000:8000'
+    command: >
+      sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+
+volumes:
+  db_data:
+  media_data:
+
+
+--- FILE: .env.example ---
+# Copy to .env and edit
+SECRET_KEY=dev-secret-key-change-me
+DEBUG=1
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Media path (within container)
+MEDIA_ROOT=/app/media
+MEDIA_URL=/media/
+
+# Django settings
+DJANGO_SETTINGS_MODULE=config.settings
+
+
+--- FILE: backend/Dockerfile ---
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+WORKDIR /app
+
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libjpeg-dev \
+    zlib1g-dev \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt /app/requirements.txt
+RUN pip install --upgrade pip && pip install -r /app/requirements.txt
+
+COPY . /app
+
+RUN mkdir -p /app/media /app/db /app/static
+
+ENV PATH="/root/.local/bin:${PATH}"
+
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+
+
+--- FILE: backend/requirements.txt ---
+Django>=4.2,<5
+djangorestframework
+gunicorn
+Pillow
+python-dotenv
+django-cors-headers
+
+
+--- FILE: backend/manage.py ---
+#!/usr/bin/env python
+import os
+import sys
+
+if __name__ == '__main__':
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError as exc:
+        raise ImportError(
+            "Couldn't import Django. Are you sure it's installed and available on your PYTHONPATH?"
+        ) from exc
+    execute_from_command_line(sys.argv)
+
+
+--- FILE: backend/config/__init__.py ---
+# config package
+
+
+--- FILE: backend/config/asgi.py ---
+import os
+from django.core.asgi import get_asgi_application
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+application = get_asgi_application()
+
+
+--- FILE: backend/config/wsgi.py ---
+import os
+from django.core.wsgi import get_wsgi_application
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+application = get_wsgi_application()
+
+
+--- FILE: backend/config/settings.py ---
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '..' / '.env')
+
+SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
+DEBUG = os.environ.get('DEBUG', '1') == '1'
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'corsheaders',
+    'apps.albums',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'config.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'config.wsgi.application'
+
+# Database (SQLite)
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db' / 'db.sqlite3',
+    }
+}
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'static'
+
+MEDIA_URL = os.environ.get('MEDIA_URL', '/media/')
+MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT', BASE_DIR / 'media'))
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# DRF basic settings
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+}
+
+# CORS
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+]
+
+
+--- FILE: backend/config/urls.py ---
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/', include('apps.albums.urls')),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+--- FILE: backend/apps/__init__.py ---
+# apps package
+
+
+--- FILE: backend/apps/albums/__init__.py ---
+default_app_config = 'apps.albums.apps.AlbumsConfig'
+
+
+--- FILE: backend/apps/albums/apps.py ---
+from django.apps import AppConfig
+
+class AlbumsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.albums'
+
+
+--- FILE: backend/apps/albums/models.py ---
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+
+User = settings.AUTH_USER_MODEL
+
+
+def media_upload_to(instance, filename):
+    return f"users/{instance.owner.id}/albums/{instance.album.id}/{timezone.now().strftime('%Y%m%d')}/{filename}"
+
+class Album(models.Model):
+    owner = models.ForeignKey(User, related_name='albums', on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_public = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.title}"
+
+class MediaFile(models.Model):
+    MEDIA_TYPE_CHOICES = (
+        ('photo', 'Photo'),
+        ('video', 'Video'),
+    )
+    owner = models.ForeignKey(User, related_name='mediafiles', on_delete=models.CASCADE)
+    album = models.ForeignKey(Album, related_name='media', on_delete=models.CASCADE)
+    file = models.FileField(upload_to=media_upload_to)
+    thumbnail = models.ImageField(upload_to=media_upload_to, blank=True, null=True)
+    media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES)
+    width = models.PositiveIntegerField(null=True, blank=True)
+    height = models.PositiveIntegerField(null=True, blank=True)
+    duration = models.FloatField(null=True, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    taken_at = models.DateTimeField(null=True, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    is_favorite = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.file.name}"
+
+
+--- FILE: backend/apps/albums/admin.py ---
+from django.contrib import admin
+from .models import Album, MediaFile
+
+@admin.register(Album)
+class AlbumAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'owner', 'created_at')
+
+@admin.register(MediaFile)
+class MediaFileAdmin(admin.ModelAdmin):
+    list_display = ('id', 'file', 'media_type', 'owner', 'uploaded_at')
+
+
+--- FILE: backend/apps/albums/serializers.py ---
+from rest_framework import serializers
+from .models import Album, MediaFile
+
+class MediaFileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MediaFile
+        fields = ('id', 'file', 'thumbnail', 'media_type', 'width', 'height', 'duration', 'uploaded_at', 'taken_at', 'metadata')
+
+class AlbumSerializer(serializers.ModelSerializer):
+    media = MediaFileSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Album
+        fields = ('id', 'title', 'description', 'owner', 'is_public', 'created_at', 'updated_at', 'media')
+        read_only_fields = ('owner',)
+
+
+--- FILE: backend/apps/albums/views.py ---
+from rest_framework import viewsets, permissions
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.exceptions import PermissionDenied
+from .models import Album, MediaFile
+from .serializers import AlbumSerializer, MediaFileSerializer
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.owner == request.user
+
+class AlbumViewSet(viewsets.ModelViewSet):
+    serializer_class = AlbumSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+
+    def get_queryset(self):
+        return Album.objects.filter(owner=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+class MediaFileViewSet(viewsets.ModelViewSet):
+    serializer_class = MediaFileSerializer
+    parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+
+    def get_queryset(self):
+        return MediaFile.objects.filter(owner=self.request.user)
+
+    def perform_create(self, serializer):
+        album = serializer.validated_data.get('album')
+        if album.owner != self.request.user:
+            raise PermissionDenied("Album does not belong to you.")
+        serializer.save(owner=self.request.user)
+
+
+--- FILE: backend/apps/albums/urls.py ---
+from rest_framework.routers import DefaultRouter
+from django.urls import path, include
+from .views import AlbumViewSet, MediaFileViewSet
+
+router = DefaultRouter()
+router.register(r'albums', AlbumViewSet, basename='album')
+router.register(r'media', MediaFileViewSet, basename='media')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+
+
+--- FILE: backend/templates/README.md ---
+# Templates folder
+
+This folder is used for Django templates if you decide to add server-rendered pages.
+
+
+--- FILE: README.md ---
+# Django Photo Album Backend (SQLite + Filesystem)
+
+This repository provides a simple Django + DRF backend configured to use SQLite for metadata and the container's filesystem for media. It is intended for local development and small family deployments.
+
+## Quick start
+
+1. Copy `.env.example` to `.env` and edit values if needed.
+2. Build and run:
+
+```bash
+docker compose up --build
+```
+
+3. Create a superuser:
+
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+
+4. Visit:
+- Admin: http://localhost:8000/admin/
+- API: http://localhost:8000/api/
+
+Media files will be stored in `./data/media` on your host, and the SQLite file at `./data/db/db.sqlite3`.
+
+## Notes
+- For production you should use a proper webserver (host nginx) and consider PostgreSQL or MySQL if you need concurrency or advanced features.
+
+
+--- FILE: backend/.gitignore ---
+__pycache__/
+*.pyc
+/media/
+/db/
+.env
+
+
+--- END OF REPOSITORY ---
