@@ -1,3 +1,32 @@
+# Django Photo Album Backend (SQLite + Filesystem)
+
+This repository provides a simple Django + DRF backend configured to use SQLite for metadata and the container's filesystem for media. It is intended for local development and small family deployments.
+
+## Quick start
+
+1. Copy `.env.example` to `.env` and edit values if needed.
+2. Build and run:
+
+```bash
+docker compose up --build
+```
+
+3. Create a superuser:
+
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+
+4. Visit:
+- Admin: http://localhost:8000/admin/
+- API: http://localhost:8000/api/
+
+Media files will be stored in `./data/media` on your host, and the SQLite file at `./data/db/db.sqlite3`.
+
+## Notes
+- For production you should use a proper webserver (host nginx) and consider PostgreSQL or MySQL if you need concurrency or advanced features.
+
+
 # Django Photo Backend — Quick Test Guide
 
 This README shows quick commands to run the backend locally (Docker Compose) and to test the Django REST Framework API using JWT tokens.
@@ -85,30 +114,4 @@ docker compose exec -T web python manage.py shell -c "from apps.albums.models im
 
 Want extras?
 - I can add a Postman/Insomnia collection, a README section for production settings, or an endpoint for public media. Tell me which.
-# Django Photo Album Backend (SQLite + Filesystem)
 
-This repository provides a simple Django + DRF backend configured to use SQLite for metadata and the container's filesystem for media. It is intended for local development and small family deployments.
-
-## Quick start
-
-1. Copy `.env.example` to `.env` and edit values if needed.
-2. Build and run:
-
-```bash
-docker compose up --build
-```
-
-3. Create a superuser:
-
-```bash
-docker compose exec web python manage.py createsuperuser
-```
-
-4. Visit:
-- Admin: http://localhost:8000/admin/
-- API: http://localhost:8000/api/
-
-Media files will be stored in `./data/media` on your host, and the SQLite file at `./data/db/db.sqlite3`.
-
-## Notes
-- For production you should use a proper webserver (host nginx) and consider PostgreSQL or MySQL if you need concurrency or advanced features.
