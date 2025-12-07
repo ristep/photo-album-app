@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div class="relative bg-gray-900">
+        <div class="absolute inset-0 bg-cover bg-center h-full w-full"
+            style="background-image: url('https://images.unsplash.com/photo-1448831866632-907bd538cf1c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')">
+        </div>
+        <div class="absolute inset-0 bg-black opacity-50"></div>
+        <div class="relative max-w-7xl mx-auto py-24 px-4 sm:py-32 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                Capture Your Moments
+            </h1>
+            <p class="mt-6 text-xl text-gray-300 max-w-3xl mx-auto">
+                Organize, share, and cherish your memories with our beautiful photo album application.
+            </p>
+            <div class="mt-10 max-w-sm mx-auto sm:max-w-none sm:flex sm:justify-center">
+                <div class="space-y-4 sm:space-y-0 sm:mx-auto sm:inline-grid sm:grid-cols-2 sm:gap-5">
+                    <a href="#"
+                        class="flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-indigo-700 bg-white hover:bg-indigo-50 sm:px-8">
+                        Get Started
+                    </a>
+                    <a href="#"
+                        class="flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 sm:px-8">
+                        View Demo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="py-12 bg-gray-50 overflow-hidden md:py-20 lg:py-24">
+        <div class="relative max-w-xl mx-auto px-4 sm:px-6 lg:px-8 lg:max-w-7xl">
+            <div class="relative">
+                <h2 class="text-center text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+                    Why use Photo Album App?
+                </h2>
+                <p class="mt-4 max-w-3xl mx-auto text-center text-xl text-gray-500">
+                    Everything you need to keep your photos safe and accessible.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

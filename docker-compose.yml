@@ -19,8 +19,8 @@ services:
       - ./backend:/app
     ports:
       - '8000:8000'
-    command: >
-      sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    # command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    command: python manage.py runserver 0.0.0.0:8000
 
   tailwind:
     build:
@@ -38,4 +38,9 @@ services:
       - ./data/db:/app/db
       - ./data/media:/app/media
       - ./backend:/app
-    command: python manage.py tailwind start
+    working_dir: /app/theme/static_src
+    command: npm run dev
+    environment:
+      - NPM_CONFIG_UPDATE_NOTIFIER=false
+      - NPM_CONFIG_FUND=false
+    tty: true
