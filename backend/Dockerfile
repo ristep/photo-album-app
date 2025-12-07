@@ -29,6 +29,15 @@ COPY . /app
 
 RUN mkdir -p /app/media /app/db /app/static
 
-ENV PATH="/root/.local/bin:${PATH}"
+# Create a non-root user
+ARG USER_ID=30033
+ARG GROUP_ID=30033
+RUN groupadd -g ${GROUP_ID} appuser && \
+    useradd -m -u ${USER_ID} -g appuser appuser && \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+ENV PATH="/home/appuser/.local/bin:${PATH}"
 
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]

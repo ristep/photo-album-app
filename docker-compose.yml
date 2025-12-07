@@ -5,8 +5,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        USER_ID: 30033
+        GROUP_ID: 30033
     container_name: photo_backend
     restart: unless-stopped
+    user: "30033:30033"
     env_file:
       - .env
     volumes:
@@ -22,8 +26,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        USER_ID: 30033
+        GROUP_ID: 30033
     container_name: photo_tailwind
     restart: unless-stopped
+    user: "30033:30033"
     env_file:
       - .env
     volumes:
